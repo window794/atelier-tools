@@ -7,8 +7,6 @@ JSON を整形するだけの、広告もトラッキングもないツールで
 
 **🔗 https://window794.github.io/atelier-tools/**
 
-<!-- ↑ 公開後、自分の GitHub ユーザー名に置き換えてください -->
-
 ---
 
 ## できること
@@ -34,7 +32,7 @@ JSON を整形するだけの、広告もトラッキングもないツールで
 ブラウザで開けばそのまま動きます（ビルド不要）。
 
 ```bash
-git clone https://github.com/<user>/atelier-tools.git
+git clone https://github.com/window794/atelier-tools.git
 ```
 
 ## 構成
