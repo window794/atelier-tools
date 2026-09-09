@@ -2,7 +2,7 @@
 
 > 道具棚 — 静かに使える、個人用のウェブ道具置き場。
 
-JSON を整形するだけの、広告もトラッキングもないツールです。
+JSON と SQL を整形するだけの、広告もトラッキングもないツールです。
 処理はすべてブラウザ内で完結し、入力したテキストはどこにも送信されません。
 
 **🔗 https://window794.github.io/atelier-tools/**
@@ -11,14 +11,27 @@ JSON を整形するだけの、広告もトラッキングもないツールで
 
 ## できること
 
+### JSON タブ
+
 | 機能 | 説明 |
 |------|------|
-| **Format** | JSON をインデント付きで整形する（幅は 2 / 4 から選択） |
+| **Format** | インデント付きで整形する（幅は 2 / 4 から選択） |
 | **Minify** | 余分な空白と改行を削って 1 行にする |
 | **Copy** | 整形結果をクリップボードにコピーする |
 | **Clear** | 入力と出力をリセットする |
 
-- 不正な JSON は `❌ Invalid JSON: …` とエラー箇所（行・文字位置）を表示します
+### SQL タブ
+
+| 機能 | 説明 |
+|------|------|
+| **Format** | 句ごとに改行してインデントする |
+| **One line** | 1 行に戻す（文字列リテラル内の空白はそのまま） |
+| **Dialect** | Standard / MySQL / PostgreSQL / SQL Server / Oracle / SQLite |
+| **Indent** | Tab / スペース 2 / スペース 4 |
+| **Keyword** | 予約語を UPPER / lower / そのまま |
+| **And・Or** | AND・OR を改行の前に置くか後に置くか |
+
+- 不正な入力は `❌ Invalid JSON: …` / `❌ Invalid SQL: …` とエラー箇所を表示します
 - `Ctrl + Enter`（Mac は `⌘ + Enter`）でも整形できます
 - ライト / ダークの切り替え、インデント幅の設定はブラウザに保存されます
 - 画面幅 768px 以下では入力欄と出力欄が上下に並びます
@@ -42,12 +55,16 @@ atelier-tools/
 ├── index.html          # 画面
 ├── assets/
 │   ├── style.css       # 配色・タイポグラフィ・レイアウト
-│   └── app.js          # 整形／ミニファイ／コピー処理
+│   ├── app.js          # JSON / SQL の整形処理
+│   └── vendor/         # sql-formatter（MIT・同梱）
 ├── DEPLOY.md           # 公開・更新手順
 └── gas/                # Google Apps Script で公開する場合の 1 ファイル版
 ```
 
-依存ライブラリはありません。整形は標準の `JSON.parse` / `JSON.stringify` のみです。
+ビルド不要、パッケージマネージャ不要です。JSON の整形は標準の
+`JSON.parse` / `JSON.stringify`、SQL の整形は同梱の
+[sql-formatter](https://github.com/sql-formatter-org/sql-formatter)（MIT）を使っています。
+CDN からは読まず、リポジトリに同梱しているので、オフラインでも動きます。
 
 ### ローカルで確認する
 
@@ -70,10 +87,9 @@ python -m http.server 8000
   JavaScript の仕様で数値キーが先に昇順で並びます。
 - **巨大な整数** — `Number.MAX_SAFE_INTEGER`（約 9007 兆）を超える数値は
   丸められて精度が落ちます。
-
-## これから
-
-- [ ] SQL フォーマッタ（タブ UI は実装済み）
+- **SQL のカンマ前置き** — 「カンマ前」「桁ぞろえ」スタイルには未対応です。
+- **SQL の One line** — 行コメント（`--`）は取り除かれます。1 行にすると
+  後続のクエリまで巻き込んでしまうためです。
 
 ## デザイン
 

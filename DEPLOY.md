@@ -1,7 +1,7 @@
 # atelier / 道具棚 v1.0 — デプロイマニュアル
 
-JSON フォーマッタの公開手順です。
-JSON の整形はすべてブラウザ内の JavaScript で完結するため、**サーバーは不要**です。
+JSON / SQL フォーマッタの公開手順です。
+整形はすべてブラウザ内の JavaScript で完結するため、**サーバーは不要**です。
 静的ホスティング（GitHub Pages）が本命、GAS は「Google アカウントで限定公開したい」ときの控えです。
 
 ---
@@ -12,21 +12,24 @@ JSON の整形はすべてブラウザ内の JavaScript で完結するため、
 atelier-tools/
 ├── index.html            … 画面（これを開けば動きます）
 ├── assets/
-│   ├── style.css         … Lily DNA のトークンとコンポーネント
-│   └── app.js            … 整形・ミニファイ・コピーの処理
+│   ├── style.css         … デザイントークンとコンポーネント
+│   ├── app.js            … JSON / SQL の整形処理
+│   └── vendor/
+│       ├── sql-formatter.min.js      … SQL 整形ライブラリ（MIT）
+│       └── sql-formatter.LICENSE     … 同梱に伴い必要
 ├── README.md             … リポジトリの説明
 ├── DEPLOY.md             … このファイル
-└── gas/                  … GAS で公開する場合だけ使う（1ファイル版）
+└── gas/                  … GAS で公開する場合だけ使う（1ファイル版・JSON のみ）
     ├── Code.gs
     └── index.html
 ```
 
 `index.html` をダブルクリックすれば、そのままローカルで使えます。
 
-> **`gas/index.html` は v1.0 時点の 1 ファイル版スナップショット**です。
-> CSS / JS を内側に抱えているので、`assets/` を直しても自動では反映されません。
-> GAS 側も更新したい場合は、`index.html` の `<link>` と `<script>` を
-> `<style>…</style>` と `<script>…</script>` に展開して貼り直してください。
+> **`gas/index.html` は v1.0 時点の 1 ファイル版スナップショット（JSON タブのみ）**です。
+> CSS / JS を内側に抱えているので、`assets/` を直しても反映されません。
+> SQL タブは 300KB のライブラリを内側に抱えることになるため、GAS 版には入れていません。
+> GitHub Pages 側だけを使うなら、`gas/` は無視して構いません。
 
 ---
 
@@ -85,6 +88,10 @@ push から反映まで 1 分ほどかかります。すぐ変わらなくても
 | 不正な JSON | `❌ Invalid JSON: …` とエラー位置が表示される |
 | light / dark | ピルスイッチでテーマが切り替わり、リロードしても保持される |
 | スマホ表示 | 幅 768px 以下で Input / Output が上下に並ぶ |
+| SQL / Format | キーワードが大文字になり、句ごとに改行される |
+| SQL / 方言 | 切り替えると解釈が変わる（`[col]` は SQL Server 等） |
+| SQL / One line | 1 行に戻る。文字列リテラル内の空白は保持される |
+| SQL / 不正なSQL | `❌ Invalid SQL: …` とエラー位置が表示される |
 
 CSS / JS を分けたので、**表示が真っ白なら `assets/` のパス切れ**を疑ってください
 （ブラウザの開発者ツール → Network で 404 を確認）。
@@ -106,12 +113,22 @@ CSS / JS を分けたので、**表示が真っ白なら `assets/` のパス切�
 
 ---
 
-## 4. Phase 2（SQL フォーマッタ）の入れどころ
+## 4. SQL 整形について
 
-- タブ UI は実装済みです。`index.html` の `#panel-sql` の中身を差し替えます。
-- ボタン・カード・バッジ・ピルは JSON タブと同じクラスを使い回せます。
-- `assets/app.js` の `convert()` と同じ形で SQL 用の関数を足し、
-  タブの選択状態で呼び分けるのがいちばん素直です。
+- 整形エンジンは同梱の [sql-formatter](https://github.com/sql-formatter-org/sql-formatter)（MIT）です。
+  更新したい場合は cdnjs から新しい `sql-formatter.min.js` を落として差し替えます。
+- 対応オプションは インデント（Tab / 2 / 4）、予約語（UPPER / lower / as-is）、
+  AND・OR の改行位置（before / after）、方言（Standard / MySQL / PostgreSQL /
+  SQL Server / Oracle / SQLite）です。
+- **「カンマ前」「カンマ前（桁ぞろえ）」はライブラリが対応していないため未実装**です。
+  必要になったら整形後のテキストを後処理する形で追加できます。
+- 「One line」は自前実装です。文字列リテラル・`` ` `` ・`[識別子]` の中身はそのまま残し、
+  行コメント（`--`）だけ取り除きます（1 行にすると後続を巻き込むため）。
+
+### 道具を増やすとき
+
+タブを1つ足して `.panel` をもう1枚置き、`assets/app.js` に `initSql()` と同じ形の
+初期化関数を足すのが素直です。ボタン・カード・バッジ・ピルは既存クラスを使い回せます。
 
 ---
 

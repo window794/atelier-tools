@@ -1,7 +1,7 @@
 @charset "UTF-8";
 
 /* ==================================================
-   atelier / 道具棚 — Lily DNA
+   atelier / 道具棚 — デザイントークン
    ================================================== */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -179,6 +179,24 @@ main {
   gap: var(--sp-2);
   flex-wrap: wrap;
 }
+/* 設定ひとつぶん（ラベル＋コントロール） */
+.toolbar-left { column-gap: var(--sp-4); row-gap: var(--sp-2); }
+.opt { display: flex; align-items: center; gap: var(--sp-1); }
+
+/* 方言セレクト */
+.select {
+  font-family: var(--font-en);
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  color: var(--text);
+  background: var(--field-bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.3rem 0.9rem;
+  cursor: pointer;
+  transition: border-color 0.3s;
+}
+.select:hover { border-color: var(--border-firm); }
 .toolbar-label {
   font-family: var(--font-en);
   font-size: 0.72rem;
@@ -204,8 +222,9 @@ main {
   background: transparent;
   border: 0;
   border-radius: 999px;
-  padding: 0.28rem 1rem;
+  padding: 0.28rem 0.95rem;
   cursor: pointer;
+  white-space: nowrap;
   transition: background 0.3s, color 0.3s;
 }
 .seg-btn[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
@@ -301,8 +320,8 @@ main {
   white-space: pre;
   overflow: auto;
 }
-/* Input は貼り付けた 1 行 JSON が折り返るように。Output は整形結果の改行を保つ */
-#input { white-space: pre-wrap; overflow-wrap: anywhere; }
+/* Input は貼り付けた 1 行のクエリが折り返るように。Output は整形結果の改行を保つ */
+.editor.wrap { white-space: pre-wrap; overflow-wrap: anywhere; }
 .editor::placeholder { color: var(--text-muted); opacity: 0.7; }
 .editor.is-error {
   color: var(--error);

@@ -12,7 +12,7 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 [hidden] { display: none !important; }
 
-/* ── Lily DNA tokens ─────────────────────────────── */
+/* ── デザイントークン ─────────────────────────────── */
 :root {
   --base:        #FAF6F0;
   --surface:     rgba(250,246,240,0.88);
@@ -411,7 +411,7 @@ footer {
           <span class="meta" id="inMeta">0 chars</span>
         </div>
         <textarea class="editor" id="input" spellcheck="false" autocapitalize="off" autocorrect="off"
-          aria-label="JSON 入力" placeholder='{"tool":"json formatter","tags":["lily","tools"]}'></textarea>
+          aria-label="JSON 入力" placeholder='{"tool":"json formatter","tags":["blåsippa","atelier"]}'></textarea>
       </div>
       <div class="card">
         <div class="card-head">
@@ -467,7 +467,7 @@ footer {
     labelDark.classList.toggle('active', theme === 'dark');
   }
 
-  var savedTheme  = store('lily-theme');
+  var savedTheme  = store('atelier-theme');
   var hostTheme   = root.getAttribute('data-theme');
   var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
   applyTheme(savedTheme || hostTheme || (prefersDark ? 'dark' : 'light'));
@@ -475,7 +475,7 @@ footer {
   themeToggle.addEventListener('click', function () {
     var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
     applyTheme(next);
-    store('lily-theme', next);
+    store('atelier-theme', next);
   });
   themeToggle.addEventListener('keydown', function (e) {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); themeToggle.click(); }
@@ -494,7 +494,7 @@ footer {
   });
 
   /* ── インデント幅 ───────────────────────────── */
-  var indent  = store('lily-json-indent') === '4' ? 4 : 2;
+  var indent  = store('atelier-json-indent') === '4' ? 4 : 2;
   var segBtns = document.querySelectorAll('.seg-btn');
 
   function applyIndent(width) {
@@ -502,7 +502,7 @@ footer {
     Array.prototype.forEach.call(segBtns, function (b) {
       b.setAttribute('aria-pressed', Number(b.getAttribute('data-indent')) === width ? 'true' : 'false');
     });
-    store('lily-json-indent', String(width));
+    store('atelier-json-indent', String(width));
   }
   applyIndent(indent);
 
@@ -621,7 +621,7 @@ footer {
   });
 
   /* 初期表示：サンプルを整形済みの状態で見せる */
-  input.value = '{"tool":"JSON Formatter","version":"1.0","indent":[2,4],"privacy":{"server":false,"storage":"browser only"},"tags":["lily","atelier","json"]}';
+  input.value = '{"tool":"JSON Formatter","version":"1.0","indent":[2,4],"privacy":{"server":false,"storage":"browser only"},"tags":["blåsippa","atelier","json"]}';
   convert(false);
   if (statusTimer) { clearTimeout(statusTimer); }
   statusEl.textContent = DEFAULT_HINT;
