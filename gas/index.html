@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>atelier｜道具棚</title>
+</head>
+<body>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Zen+Old+Mincho:wght@400;700&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+[hidden] { display: none !important; }
+
+/* ── Lily DNA tokens ─────────────────────────────── */
+:root {
+  --base:        #FAF6F0;
+  --surface:     rgba(250,246,240,0.88);
+  --accent:      #B8D4E0;
+  --accent-deep: #9CBFD0;
+  --accent-soft: #F2D7D9;
+  --text:        #4A4A4A;
+  --text-muted:  #A0A0A0;
+  --border:      rgba(184,212,224,0.35);
+  --border-firm: rgba(184,212,224,0.55);
+  --card-bg:     rgba(250,246,240,0.6);
+  --field-bg:    rgba(255,255,255,0.5);
+  --on-accent:   #34464F;
+  --error:       #B58A8A;
+  --ok:          #8FA9A0;
+
+  --font-en:   'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --font-ja:   'Zen Old Mincho', '游明朝', YuMincho, 'Hiragino Mincho ProN', serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Noto Sans Mono', monospace;
+
+  --sp-1: 0.4rem;  --sp-2: 0.8rem;  --sp-3: 1.2rem;
+  --sp-4: 1.8rem;  --sp-5: 2.6rem;  --sp-6: 4rem;
+}
+
+/* 夜明け前（ダークモード） */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --base:        #1C2128;
+    --surface:     rgba(22,27,34,0.92);
+    --accent:      #B8D4E0;
+    --accent-deep: #2d4a57;
+    --accent-soft: #2d4a57;
+    --text:        #DCE8ED;
+    --text-muted:  #5A7A88;
+    --border:      rgba(184,212,224,0.15);
+    --border-firm: rgba(184,212,224,0.3);
+    --card-bg:     rgba(255,255,255,0.03);
+    --field-bg:    rgba(255,255,255,0.02);
+    --on-accent:   #1C2128;
+    --error:       #D2A5A5;
+    --ok:          #9FC0B4;
+  }
+}
+:root[data-theme="dark"] {
+  --base:        #1C2128;
+  --surface:     rgba(22,27,34,0.92);
+  --accent:      #B8D4E0;
+  --accent-deep: #2d4a57;
+  --accent-soft: #2d4a57;
+  --text:        #DCE8ED;
+  --text-muted:  #5A7A88;
+  --border:      rgba(184,212,224,0.15);
+  --border-firm: rgba(184,212,224,0.3);
+  --card-bg:     rgba(255,255,255,0.03);
+  --field-bg:    rgba(255,255,255,0.02);
+  --on-accent:   #1C2128;
+  --error:       #D2A5A5;
+  --ok:          #9FC0B4;
+}
+
+body {
+  background: var(--base);
+  color: var(--text);
+  font-family: var(--font-ja);
+  font-size: 15px;
+  line-height: 1.9;
+  -webkit-font-smoothing: antialiased;
+  transition: background 0.4s ease, color 0.4s ease;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+:focus-visible { outline: 1px solid var(--accent-deep); outline-offset: 3px; }
+
+/* ── Header ──────────────────────────────────────── */
+.site-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-4) var(--sp-6);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  transition: background 0.4s ease, border-color 0.4s ease;
+}
+.brand { display: flex; align-items: baseline; gap: var(--sp-3); }
+.brand-en {
+  font-family: var(--font-en);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 1.3rem;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}
+.brand-ja { font-size: 0.95rem; letter-spacing: 0.14em; }
+
+/* PillToggle（テーマ切り替え） */
+.pill-toggle { display: flex; align-items: center; gap: 7px; cursor: pointer; }
+.pill-label {
+  font-family: var(--font-en);
+  font-style: italic;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  transition: color 0.3s;
+  user-select: none;
+}
+.pill-label.active { color: var(--text); }
+.pill-track {
+  width: 36px; height: 19px; border-radius: 10px;
+  background: var(--accent); position: relative;
+  transition: background 0.3s; flex-shrink: 0;
+}
+.pill-thumb {
+  position: absolute; width: 13px; height: 13px; border-radius: 50%;
+  background: #FAF6F0; top: 3px; left: 20px;
+  transition: left 0.25s ease, background 0.3s;
+}
+:root[data-theme="dark"] .pill-track { background: #2d4a57; }
+:root[data-theme="dark"] .pill-thumb { left: 3px; background: var(--accent); }
+
+/* ── Tabs ────────────────────────────────────────── */
+.tabs {
+  display: flex;
+  gap: var(--sp-5);
+  padding: 0 var(--sp-6);
+  border-bottom: 1px solid var(--border);
+}
+.tab {
+  font-family: var(--font-en);
+  font-size: 0.8rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: none;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  margin-bottom: -1px;
+  padding: 0.9rem 0.2rem;
+  cursor: pointer;
+  transition: color 0.3s, border-color 0.3s;
+}
+.tab:hover { color: var(--text); }
+.tab[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
+
+/* ── Layout ──────────────────────────────────────── */
+main {
+  flex: 1;
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: var(--sp-5) var(--sp-6) var(--sp-6);
+}
+.panel { display: flex; flex-direction: column; gap: var(--sp-3); }
+
+/* ── Toolbar ─────────────────────────────────────── */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+.toolbar-left, .toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+.toolbar-label {
+  font-family: var(--font-en);
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-right: var(--sp-1);
+}
+
+/* PillToggle（インデント幅） */
+.seg {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--field-bg);
+}
+.seg-btn {
+  font-family: var(--font-en);
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.28rem 1rem;
+  cursor: pointer;
+  transition: background 0.3s, color 0.3s;
+}
+.seg-btn[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+:root[data-theme="dark"] .seg-btn[aria-pressed="true"] { background: #2d4a57; color: var(--text); }
+
+/* Button */
+.btn {
+  font-family: var(--font-en);
+  font-size: 0.76rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.5rem 1.4rem;
+  cursor: pointer;
+  transition: background 0.3s, border-color 0.3s, color 0.3s;
+}
+.btn:hover { border-color: var(--border-firm); }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn-primary:hover { background: var(--accent-deep); border-color: var(--accent-deep); }
+:root[data-theme="dark"] .btn-primary:hover { color: var(--text); }
+.btn-ghost { border-color: transparent; color: var(--text-muted); }
+.btn-ghost:hover { color: var(--text); border-color: var(--border); }
+
+/* ── Status ──────────────────────────────────────── */
+.status {
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  min-height: 1.6em;
+  transition: color 0.3s;
+}
+.status.is-error { color: var(--error); }
+.status.is-ok { color: var(--ok); }
+
+/* ── Editors ─────────────────────────────────────── */
+.editor-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-4);
+}
+.card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--card-bg);
+  transition: border-color 0.3s, background 0.4s;
+}
+.card:focus-within { border-color: var(--border-firm); }
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  padding: 0.7rem var(--sp-3);
+  border-bottom: 1px solid var(--border);
+}
+/* Badge */
+.badge {
+  font-family: var(--font-en);
+  font-size: 0.66rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.1rem 0.75rem;
+}
+.meta {
+  font-family: var(--font-en);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.editor {
+  flex: 1;
+  width: 100%;
+  min-height: 340px;
+  resize: vertical;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  line-height: 1.85;
+  padding: var(--sp-3);
+  outline: none;
+  white-space: pre;
+  overflow: auto;
+}
+/* Input は貼り付けた 1 行 JSON が折り返るように。Output は整形結果の改行を保つ */
+#input { white-space: pre-wrap; overflow-wrap: anywhere; }
+.editor::placeholder { color: var(--text-muted); opacity: 0.7; }
+.editor.is-error {
+  color: var(--error);
+  white-space: pre-wrap;
+  font-family: var(--font-ja);
+  font-size: 0.85rem;
+  line-height: 2;
+}
+
+/* ── Phase 2 ─────────────────────────────────────── */
+.soon {
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--card-bg);
+  padding: var(--sp-6) var(--sp-4);
+  text-align: center;
+}
+.soon em {
+  display: block;
+  font-family: var(--font-en);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 1.6rem;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  margin-bottom: var(--sp-2);
+}
+.soon p { font-size: 0.86rem; color: var(--text-muted); }
+
+/* ── Footer ──────────────────────────────────────── */
+footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-4) var(--sp-6);
+  border-top: 1px solid var(--border);
+}
+.footer-copy {
+  font-family: var(--font-en);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  color: var(--text-muted);
+}
+
+/* ── Responsive ──────────────────────────────────── */
+@media (max-width: 768px) {
+  .site-header, .tabs, footer { padding-left: var(--sp-4); padding-right: var(--sp-4); }
+  main { padding: var(--sp-4); }
+  .editor-grid { grid-template-columns: 1fr; gap: var(--sp-3); }
+  .editor { min-height: 240px; }
+  .toolbar-right { width: 100%; }
+  .btn { flex: 1; padding: 0.5rem 0.8rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}
+</style>
+
+<header class="site-header">
+  <div class="brand">
+    <span class="brand-en">atelier</span>
+    <span class="brand-ja">道具棚</span>
+  </div>
+  <div class="pill-toggle" id="themeToggle" role="button" aria-label="テーマ切り替え" tabindex="0">
+    <span class="pill-label active" id="labelLight">light</span>
+    <div class="pill-track"><div class="pill-thumb"></div></div>
+    <span class="pill-label" id="labelDark">dark</span>
+  </div>
+</header>
+
+<nav class="tabs" role="tablist" aria-label="ツール">
+  <button class="tab" id="tab-json" role="tab" aria-selected="true" aria-controls="panel-json" data-tab="json">JSON</button>
+  <button class="tab" id="tab-sql" role="tab" aria-selected="false" aria-controls="panel-sql" data-tab="sql">SQL</button>
+</nav>
+
+<main>
+  <section class="panel" id="panel-json" role="tabpanel" aria-labelledby="tab-json">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <span class="toolbar-label">Indent</span>
+        <div class="seg" role="group" aria-label="インデント幅">
+          <button type="button" class="seg-btn" data-indent="2" aria-pressed="true">2</button>
+          <button type="button" class="seg-btn" data-indent="4" aria-pressed="false">4</button>
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <button type="button" class="btn btn-primary" id="btnFormat">Format</button>
+        <button type="button" class="btn" id="btnMinify">Minify</button>
+        <button type="button" class="btn" id="btnCopy">Copy</button>
+        <button type="button" class="btn btn-ghost" id="btnClear">Clear</button>
+      </div>
+    </div>
+
+    <p class="status" id="status" role="status" aria-live="polite">Ctrl + Enter でも整形できます。テキストはブラウザ内だけで処理され、送信されません。</p>
+
+    <div class="editor-grid">
+      <div class="card">
+        <div class="card-head">
+          <span class="badge">Input</span>
+          <span class="meta" id="inMeta">0 chars</span>
+        </div>
+        <textarea class="editor" id="input" spellcheck="false" autocapitalize="off" autocorrect="off"
+          aria-label="JSON 入力" placeholder='{"tool":"json formatter","tags":["lily","tools"]}'></textarea>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <span class="badge">Output</span>
+          <span class="meta" id="outMeta">0 lines</span>
+        </div>
+        <textarea class="editor" id="output" readonly spellcheck="false" aria-label="整形結果"></textarea>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-sql" role="tabpanel" aria-labelledby="tab-sql" hidden>
+    <div class="soon">
+      <em>coming soon</em>
+      <p>SQL フォーマッタは Phase 2 で追加予定です。</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <span class="footer-copy">&copy; atelier</span>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  var root     = document.documentElement;
+  var input    = document.getElementById('input');
+  var output   = document.getElementById('output');
+  var statusEl = document.getElementById('status');
+  var inMeta   = document.getElementById('inMeta');
+  var outMeta  = document.getElementById('outMeta');
+  var DEFAULT_HINT = 'Ctrl + Enter でも整形できます。テキストはブラウザ内だけで処理され、送信されません。';
+
+  /* localStorage は GAS の iframe など保存できない環境で例外になるため必ず包む */
+  function store(key, value) {
+    try {
+      if (value === undefined) { return localStorage.getItem(key); }
+      localStorage.setItem(key, value);
+    } catch (e) { /* 保存できない環境では既定値のまま動かす */ }
+    return null;
+  }
+
+  /* ── テーマ ─────────────────────────────────── */
+  var labelLight  = document.getElementById('labelLight');
+  var labelDark   = document.getElementById('labelDark');
+  var themeToggle = document.getElementById('themeToggle');
+
+  function applyTheme(theme) {
+    root.setAttribute('data-theme', theme);
+    labelLight.classList.toggle('active', theme === 'light');
+    labelDark.classList.toggle('active', theme === 'dark');
+  }
+
+  var savedTheme  = store('lily-theme');
+  var hostTheme   = root.getAttribute('data-theme');
+  var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  applyTheme(savedTheme || hostTheme || (prefersDark ? 'dark' : 'light'));
+
+  themeToggle.addEventListener('click', function () {
+    var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    store('lily-theme', next);
+  });
+  themeToggle.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); themeToggle.click(); }
+  });
+
+  /* ── タブ ───────────────────────────────────── */
+  var tabs = document.querySelectorAll('.tab');
+  Array.prototype.forEach.call(tabs, function (tab) {
+    tab.addEventListener('click', function () {
+      Array.prototype.forEach.call(tabs, function (t) {
+        var selected = (t === tab);
+        t.setAttribute('aria-selected', selected ? 'true' : 'false');
+        document.getElementById('panel-' + t.getAttribute('data-tab')).hidden = !selected;
+      });
+    });
+  });
+
+  /* ── インデント幅 ───────────────────────────── */
+  var indent  = store('lily-json-indent') === '4' ? 4 : 2;
+  var segBtns = document.querySelectorAll('.seg-btn');
+
+  function applyIndent(width) {
+    indent = width;
+    Array.prototype.forEach.call(segBtns, function (b) {
+      b.setAttribute('aria-pressed', Number(b.getAttribute('data-indent')) === width ? 'true' : 'false');
+    });
+    store('lily-json-indent', String(width));
+  }
+  applyIndent(indent);
+
+  Array.prototype.forEach.call(segBtns, function (b) {
+    b.addEventListener('click', function () {
+      applyIndent(Number(b.getAttribute('data-indent')));
+      if (output.value && !output.classList.contains('is-error')) { convert(false); }
+    });
+  });
+
+  /* ── 表示ヘルパ ─────────────────────────────── */
+  var statusTimer = null;
+  function setStatus(message, kind) {
+    statusEl.textContent = message;
+    statusEl.className = 'status' + (kind ? ' is-' + kind : '');
+    if (statusTimer) { clearTimeout(statusTimer); }
+    statusTimer = setTimeout(function () {
+      statusEl.textContent = DEFAULT_HINT;
+      statusEl.className = 'status';
+    }, 4000);
+  }
+
+  function updateMeta() {
+    inMeta.textContent = input.value.length + ' chars';
+    var lines = output.value ? output.value.split('\n').length : 0;
+    outMeta.textContent = lines + (lines === 1 ? ' line' : ' lines');
+  }
+
+  function setOutput(text, isError) {
+    output.value = text;
+    output.classList.toggle('is-error', !!isError);
+    updateMeta();
+  }
+
+  function lineColumn(text, position) {
+    var head = text.slice(0, position);
+    var line = head.split('\n').length;
+    var column = position - head.lastIndexOf('\n');
+    return line + ' 行目 ' + column + ' 文字目';
+  }
+
+  function showError(err, source) {
+    var message = (err && err.message) ? err.message : String(err);
+    var found = /position\s+(\d+)/i.exec(message);
+    var where = '';
+    if (found && !/line\s+\d+/i.test(message)) {
+      where = '\n位置: ' + lineColumn(source, Number(found[1]));
+    }
+    setOutput('❌ Invalid JSON: ' + message + where, true);
+    setStatus('JSON を解析できませんでした。入力を確認してください。', 'error');
+  }
+
+  /* ── 整形 / ミニファイ ──────────────────────── */
+  function convert(minify) {
+    var source = input.value;
+    if (!source.trim()) {
+      setOutput('', false);
+      setStatus('Input が空です。JSON を貼り付けてください。');
+      input.focus();
+      return;
+    }
+    try {
+      var parsed = JSON.parse(source);
+      setOutput(minify ? JSON.stringify(parsed) : JSON.stringify(parsed, null, indent), false);
+      setStatus(minify ? 'Minify しました。' : '整形しました（インデント ' + indent + '）。', 'ok');
+    } catch (err) {
+      showError(err, source);
+    }
+  }
+
+  /* ── コピー ─────────────────────────────────── */
+  function legacyCopy(text) {
+    var scratch = document.createElement('textarea');
+    scratch.value = text;
+    scratch.setAttribute('readonly', '');
+    scratch.style.position = 'fixed';
+    scratch.style.top = '0';
+    scratch.style.opacity = '0';
+    document.body.appendChild(scratch);
+    scratch.select();
+    var copied = false;
+    try { copied = document.execCommand('copy'); } catch (e) { copied = false; }
+    document.body.removeChild(scratch);
+    return copied;
+  }
+
+  function copyOutput() {
+    var text = output.value;
+    if (!text) { setStatus('コピーする内容がありません。'); return; }
+    var done = function () { setStatus('Output をコピーしました。', 'ok'); };
+    var fallback = function () {
+      if (legacyCopy(text)) { done(); }
+      else { setStatus('コピーできませんでした。Output を選択して手動でコピーしてください。', 'error'); }
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, fallback);
+    } else {
+      fallback();
+    }
+  }
+
+  /* ── 操作 ───────────────────────────────────── */
+  document.getElementById('btnFormat').addEventListener('click', function () { convert(false); });
+  document.getElementById('btnMinify').addEventListener('click', function () { convert(true); });
+  document.getElementById('btnCopy').addEventListener('click', copyOutput);
+  document.getElementById('btnClear').addEventListener('click', function () {
+    input.value = '';
+    setOutput('', false);
+    setStatus('Input / Output をクリアしました。');
+    input.focus();
+  });
+
+  input.addEventListener('input', updateMeta);
+  input.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); convert(false); }
+  });
+
+  /* 初期表示：サンプルを整形済みの状態で見せる */
+  input.value = '{"tool":"JSON Formatter","version":"1.0","indent":[2,4],"privacy":{"server":false,"storage":"browser only"},"tags":["lily","atelier","json"]}';
+  convert(false);
+  if (statusTimer) { clearTimeout(statusTimer); }
+  statusEl.textContent = DEFAULT_HINT;
+  statusEl.className = 'status';
+})();
+</script>
+</body>
+</html>

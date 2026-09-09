@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>atelier｜道具棚</title>
+<meta name="description" content="JSON を整形・ミニファイする道具棚。テキストはブラウザ内だけで処理されます。">
+<meta name="color-scheme" content="light dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Zen+Old+Mincho:wght@400;700&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+<script defer src="assets/app.js"></script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="brand">
+    <span class="brand-en">atelier</span>
+    <span class="brand-ja">道具棚</span>
+  </div>
+  <div class="pill-toggle" id="themeToggle" role="button" aria-label="テーマ切り替え" tabindex="0">
+    <span class="pill-label active" id="labelLight">light</span>
+    <div class="pill-track"><div class="pill-thumb"></div></div>
+    <span class="pill-label" id="labelDark">dark</span>
+  </div>
+</header>
+
+<nav class="tabs" role="tablist" aria-label="ツール">
+  <button class="tab" id="tab-json" role="tab" aria-selected="true" aria-controls="panel-json" data-tab="json">JSON</button>
+  <button class="tab" id="tab-sql" role="tab" aria-selected="false" aria-controls="panel-sql" data-tab="sql">SQL</button>
+</nav>
+
+<main>
+  <section class="panel" id="panel-json" role="tabpanel" aria-labelledby="tab-json">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <span class="toolbar-label">Indent</span>
+        <div class="seg" role="group" aria-label="インデント幅">
+          <button type="button" class="seg-btn" data-indent="2" aria-pressed="true">2</button>
+          <button type="button" class="seg-btn" data-indent="4" aria-pressed="false">4</button>
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <button type="button" class="btn btn-primary" id="btnFormat">Format</button>
+        <button type="button" class="btn" id="btnMinify">Minify</button>
+        <button type="button" class="btn" id="btnCopy">Copy</button>
+        <button type="button" class="btn btn-ghost" id="btnClear">Clear</button>
+      </div>
+    </div>
+
+    <p class="status" id="status" role="status" aria-live="polite">Ctrl + Enter でも整形できます。テキストはブラウザ内だけで処理され、送信されません。</p>
+
+    <div class="editor-grid">
+      <div class="card">
+        <div class="card-head">
+          <span class="badge">Input</span>
+          <span class="meta" id="inMeta">0 chars</span>
+        </div>
+        <textarea class="editor" id="input" spellcheck="false" autocapitalize="off" autocorrect="off"
+          aria-label="JSON 入力" placeholder='{"tool":"json formatter","tags":["lily","atelier"]}'></textarea>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <span class="badge">Output</span>
+          <span class="meta" id="outMeta">0 lines</span>
+        </div>
+        <textarea class="editor" id="output" readonly spellcheck="false" aria-label="整形結果"></textarea>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-sql" role="tabpanel" aria-labelledby="tab-sql" hidden>
+    <div class="soon">
+      <em>coming soon</em>
+      <p>SQL フォーマッタは Phase 2 で追加予定です。</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <span class="footer-copy">&copy; atelier</span>
+</footer>
+
+</body>
+</html>
