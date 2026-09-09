@@ -100,6 +100,8 @@ python -m http.server 8000
 配色は「春の朝の、上品で知的な透明感」をコンセプトにした自作のデザインルール準拠。
 ベースはクリーミーオフホワイト `#FAF6F0`、アクセントは霞水色 `#B8D4E0`、
 書体は Cormorant Garamond と ZEN Old Mincho を使っています。
+入力欄は UDEV Gothic 35、なければ JetBrains Mono と BIZ UDGothic の組み合わせ
+（UDEV Gothic の材料そのもの）で、半角と全角が 3 : 5 で揃います。
 ダークモードは「夜明け前」の `#1C2128` に切り替わります。
 
 ---

@@ -30,7 +30,11 @@
 
   --font-en:   'Cormorant Garamond', Georgia, 'Times New Roman', serif;
   --font-ja:   'Zen Old Mincho', '游明朝', YuMincho, 'Hiragino Mincho ProN', serif;
+  /* UDEV Gothic は BIZ UDゴシック と JetBrains Mono の合成フォント。
+     インストールされていれば本物を、なければ材料の2つを Google Fonts から重ねる
+     （欧文は JetBrains Mono、和文は BIZ UDGothic が受け持つ） */
   --font-mono: 'UDEV Gothic 35', 'UDEVGothic35', 'UDEV Gothic', 'UDEVGothic',
+               'JetBrains Mono', 'BIZ UDGothic',
                ui-monospace, SFMono-Regular, Menlo, Consolas, 'Noto Sans Mono', monospace;
 
   --sp-1: 0.4rem;  --sp-2: 0.8rem;  --sp-3: 1.2rem;
