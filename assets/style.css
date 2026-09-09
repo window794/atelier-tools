@@ -9,6 +9,10 @@
 
 /* ── トークン ────────────────────────────────────── */
 :root {
+  /* セレクトのドロップダウンやスクロールバーなど、
+     ブラウザが描く部品にテーマを伝える */
+  color-scheme: light;
+
   --base:        #FAF6F0;
   --surface:     rgba(250,246,240,0.88);
   --accent:      #B8D4E0;
@@ -36,6 +40,7 @@
 /* 夜明け前（ダークモード） */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --base:        #1C2128;
     --surface:     rgba(22,27,34,0.92);
     --accent:      #B8D4E0;
@@ -53,6 +58,7 @@
   }
 }
 :root[data-theme="dark"] {
+  color-scheme: dark;
   --base:        #1C2128;
   --surface:     rgba(22,27,34,0.92);
   --accent:      #B8D4E0;
@@ -197,6 +203,8 @@ main {
   transition: border-color 0.3s;
 }
 .select:hover { border-color: var(--border-firm); }
+/* ドロップダウンの一覧は OS が描くので、色を明示しておく */
+.select option { background-color: var(--base); color: var(--text); }
 .toolbar-label {
   font-family: var(--font-en);
   font-size: 0.72rem;

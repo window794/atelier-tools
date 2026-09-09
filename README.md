@@ -26,7 +26,7 @@ JSON と SQL を整形するだけの、広告もトラッキングもないツ�
 |------|------|
 | **Format** | 句ごとに改行してインデントする |
 | **One line** | 1 行に戻す（文字列リテラル内の空白はそのまま） |
-| **Dialect** | Standard / MySQL / PostgreSQL / SQL Server / Oracle / SQLite |
+| **Dialect** | Standard / MySQL / PostgreSQL / SQL Server / Oracle / SQLite / Access |
 | **Indent** | Tab / スペース 2 / スペース 4 |
 | **Keyword** | 予約語を UPPER / lower / そのまま |
 | **And・Or** | AND・OR を改行の前に置くか後に置くか |
@@ -90,6 +90,9 @@ python -m http.server 8000
 - **SQL のカンマ前置き** — 「カンマ前」「桁ぞろえ」スタイルには未対応です。
 - **SQL の One line** — 行コメント（`--`）は取り除かれます。1 行にすると
   後続のクエリまで巻き込んでしまうためです。
+- **Access** — `[表]![列]` と `#日付#` を一時的に伏せ字にしてから SQL Server
+  として整形し、あとで元に戻しています。`TRANSFORM` / `PIVOT` を使ったクロス集計
+  クエリのような Access 固有の構文までは面倒を見きれません。
 
 ## デザイン
 

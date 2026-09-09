@@ -318,6 +318,29 @@
       };
     }
 
+    /**
+     * Access 方言の下ごしらえ。
+     * sql-formatter は [表]![列] と #日付# を解釈できず構文エラーになるので、
+     * その部分だけ伏せ字に置き換えて整形し、あとで元に戻す。
+     */
+    function maskAccess(sql) {
+      var bag = [];
+      function keep(match) {
+        bag.push(match);
+        return '__acs' + (bag.length - 1) + '__';
+      }
+      var masked = sql
+        .replace(/(\[[^\]\n]*\]|[A-Za-z_]\w*)\s*!\s*(\[[^\]\n]*\]|[A-Za-z_]\w*)/g, keep)
+        .replace(/#[^#\n]*#/g, keep);
+      return { sql: masked, bag: bag };
+    }
+
+    function unmaskAccess(text, bag) {
+      return text.replace(/__acs(\d+)__/g, function (whole, index) {
+        return bag[Number(index)];
+      });
+    }
+
     function format() {
       var source = input.value;
       if (!source.trim()) {
@@ -332,14 +355,18 @@
         return;
       }
       var width = indent.get();
+      var isAccess = dialect.value === 'access';
+      var masked = isAccess ? maskAccess(source) : null;
       try {
-        setOutput(sqlFormatter.format(source, {
-          language: dialect.value,
+        var result = sqlFormatter.format(isAccess ? masked.sql : source, {
+          /* Access は角かっこ識別子を扱える SQL Server として解釈させる */
+          language: isAccess ? 'transactsql' : dialect.value,
           useTabs: width === 'tab',
           tabWidth: width === 'tab' ? 4 : Number(width),
           keywordCase: keyword.get(),
           logicalOperatorNewline: logical.get()
-        }), false);
+        });
+        setOutput(isAccess ? unmaskAccess(result, masked.bag) : result, false);
         setStatus('整形しました（' + dialect.options[dialect.selectedIndex].text + '）。', 'ok');
       } catch (err) {
         setOutput('❌ Invalid SQL: ' + ((err && err.message) ? err.message : String(err)), true);

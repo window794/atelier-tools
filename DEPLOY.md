@@ -92,6 +92,8 @@ push から反映まで 1 分ほどかかります。すぐ変わらなくても
 | SQL / 方言 | 切り替えると解釈が変わる（`[col]` は SQL Server 等） |
 | SQL / One line | 1 行に戻る。文字列リテラル内の空白は保持される |
 | SQL / 不正なSQL | `❌ Invalid SQL: …` とエラー位置が表示される |
+| SQL / Access | `[表]![列]` `#日付#` が崩れずに整形される |
+| 方言セレクト | ダークテーマで一覧が黒地・白文字で読める |
 
 CSS / JS を分けたので、**表示が真っ白なら `assets/` のパス切れ**を疑ってください
 （ブラウザの開発者ツール → Network で 404 を確認）。
@@ -119,7 +121,11 @@ CSS / JS を分けたので、**表示が真っ白なら `assets/` のパス切�
   更新したい場合は cdnjs から新しい `sql-formatter.min.js` を落として差し替えます。
 - 対応オプションは インデント（Tab / 2 / 4）、予約語（UPPER / lower / as-is）、
   AND・OR の改行位置（before / after）、方言（Standard / MySQL / PostgreSQL /
-  SQL Server / Oracle / SQLite）です。
+  SQL Server / Oracle / SQLite / Access）です。
+- **Access はライブラリ非対応**のため、`assets/app.js` の `maskAccess()` で
+  `[表]![列]` と `#日付#` を `__acs0__` のような伏せ字に置き換えてから
+  SQL Server として整形し、`unmaskAccess()` で元に戻しています。
+  `&` 連結・`IIf()`・`"文字列"`・`LIKE "*田*"` はそのまま通ります。
 - **「カンマ前」「カンマ前（桁ぞろえ）」はライブラリが対応していないため未実装**です。
   必要になったら整形後のテキストを後処理する形で追加できます。
 - 「One line」は自前実装です。文字列リテラル・`` ` `` ・`[識別子]` の中身はそのまま残し、
