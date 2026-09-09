@@ -9,11 +9,12 @@ JSON の整形はすべてブラウザ内の JavaScript で完結するため、
 ## 0. ファイル構成
 
 ```
-atelier/
+atelier-tools/
 ├── index.html            … 画面（これを開けば動きます）
 ├── assets/
 │   ├── style.css         … Lily DNA のトークンとコンポーネント
 │   └── app.js            … 整形・ミニファイ・コピーの処理
+├── README.md             … リポジトリの説明
 ├── DEPLOY.md             … このファイル
 └── gas/                  … GAS で公開する場合だけ使う（1ファイル版）
     ├── Code.gs
@@ -38,9 +39,9 @@ atelier/
 ```bash
 git init
 git add .
-git commit -m "atelier v1.0"
+git commit -m "atelier-tools v1.0"
 git branch -M main
-git remote add origin https://github.com/<ユーザー名>/<リポジトリ名>.git
+git remote add origin https://github.com/<ユーザー名>/atelier-tools.git
 git push -u origin main
 ```
 
@@ -49,9 +50,9 @@ git push -u origin main
 1. GitHub のリポジトリ → **Settings** → 左メニューの **Pages**
 2. **Source** を **Deploy from a branch** にする
 3. **Branch** を `main` / `/ (root)` にして **Save**
-4. 1〜2 分待つと `https://<ユーザー名>.github.io/<リポジトリ名>/` で公開されます
+4. 1〜2 分待つと `https://<ユーザー名>.github.io/atelier-tools/` で公開されます
 
-サブディレクトリに置いた場合は `.../<リポジトリ名>/atelier/` のようになります。
+サブディレクトリに置いた場合は `.../atelier-tools/` のようになります。
 `assets/` は相対パス参照なので、どの階層に置いても動きます。
 
 ### 1-3. 更新する
