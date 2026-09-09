@@ -195,7 +195,8 @@ main {
   font-size: 0.82rem;
   letter-spacing: 0.06em;
   color: var(--text);
-  background: var(--field-bg);
+  /* 一覧の地色は OS がこの背景色を使う。半透明だと白地に描かれてしまうので不透明で */
+  background-color: var(--base);
   border: 1px solid var(--border);
   border-radius: 999px;
   padding: 0.3rem 0.9rem;
@@ -203,8 +204,10 @@ main {
   transition: border-color 0.3s;
 }
 .select:hover { border-color: var(--border-firm); }
-/* ドロップダウンの一覧は OS が描くので、色を明示しておく */
-.select option { background-color: var(--base); color: var(--text); }
+.select option {
+  background-color: var(--base);
+  color: var(--text);
+}
 .toolbar-label {
   font-family: var(--font-en);
   font-size: 0.72rem;

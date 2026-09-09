@@ -26,6 +26,7 @@ JSON と SQL を整形するだけの、広告もトラッキングもないツ�
 |------|------|
 | **Format** | 句ごとに改行してインデントする |
 | **One line** | 1 行に戻す（文字列リテラル内の空白はそのまま） |
+| **Sample** | 選んでいる方言らしい書き方の見本を読み込む |
 | **Dialect** | Standard / MySQL / PostgreSQL / SQL Server / Oracle / SQLite / Access |
 | **Indent** | Tab / スペース 2 / スペース 4 |
 | **Keyword** | 予約語を UPPER / lower / そのまま |

@@ -220,6 +220,36 @@
     var setStatus = makeStatus($('sqlStatus'), HINT);
     var updateMeta = makeCounter(input, output, $('sqlInMeta'), $('sqlOutMeta'));
 
+    /* 方言ごとの見本。その方言らしい書き方が一目で分かるものを選んである */
+    var SAMPLES = {
+      sql: "with recent as (select order_id, customer_id, total from orders where order_date >= date '2026-01-01') select c.name, count(*) as cnt, sum(r.total) as amount from recent r join customers c on c.id = r.customer_id group by c.name having count(*) > 3 order by amount desc fetch first 10 rows only",
+      mysql: "select `u`.`name`, date_format(o.created_at, '%Y-%m') as ym, group_concat(o.code separator ', ') as codes, ifnull(sum(o.total), 0) as amount from `users` u left join `orders` o on o.user_id = u.id where u.status = 'active' group by `u`.`name`, ym order by amount desc limit 20",
+      postgresql: "select c.name, date_trunc('month', o.created_at) as ym, coalesce(sum(o.total), 0)::numeric(12, 2) as amount from customers c left join orders o on o.customer_id = c.id where c.email ilike '%@example.com' and o.created_at >= now() - interval '90 days' group by c.name, ym order by amount desc limit 20",
+      transactsql: "select top (20) [c].[Name], isnull(sum([o].[Total]), 0) as [Amount], convert(varchar(7), [o].[CreatedAt], 120) as [Ym] from [dbo].[Customers] as [c] left join [dbo].[Orders] as [o] on [o].[CustomerId] = [c].[Id] where [c].[Status] = N'active' and [o].[CreatedAt] >= dateadd(day, -90, getdate()) group by [c].[Name], convert(varchar(7), [o].[CreatedAt], 120) order by [Amount] desc",
+      plsql: "select c.name, to_char(o.created_at, 'YYYY-MM') as ym, nvl(sum(o.total), 0) as amount from customers c left join orders o on o.customer_id = c.id where c.status = 'active' and o.created_at >= sysdate - 90 and rownum <= 20 group by c.name, to_char(o.created_at, 'YYYY-MM') order by amount desc",
+      sqlite: "select c.first_name || ' ' || c.last_name as full_name, strftime('%Y-%m', o.created_at) as ym, ifnull(sum(o.total), 0) as amount from customers c left join orders o on o.customer_id = c.id where c.status = 'active' group by full_name, ym order by amount desc limit 20",
+      access: 'SELECT [Customers]![Name] AS Nm, Nz(Sum([Orders]![Total]), 0) AS Amount, IIf([Orders]![Total] > 10000, "大口", "通常") AS Grp FROM [Customers] INNER JOIN [Orders] ON [Customers]![ID] = [Orders]![CustomerID] WHERE [Orders]![OrderDate] BETWEEN #2026-01-01# AND #2026-12-31# AND [Customers]![Name] LIKE "*商事*" GROUP BY [Customers]![Name] ORDER BY Amount DESC'
+    };
+
+    /* 入力が見本のままなら、方言を変えたときに差し替えてよい */
+    function inputIsSample() {
+      var current = input.value.trim();
+      for (var key in SAMPLES) {
+        if (SAMPLES[key] === current) { return true; }
+      }
+      return current === '';
+    }
+
+    function loadSample() {
+      input.value = SAMPLES[dialect.value] || SAMPLES.sql;
+      format();
+      setStatus(dialectLabel() + ' の見本を読み込みました。', 'ok');
+    }
+
+    function dialectLabel() {
+      return dialect.options[dialect.selectedIndex].text;
+    }
+
     function setOutput(text, isError) {
       output.value = text;
       output.classList.toggle('is-error', !!isError);
@@ -366,8 +396,15 @@
           keywordCase: keyword.get(),
           logicalOperatorNewline: logical.get()
         });
-        setOutput(isAccess ? unmaskAccess(result, masked.bag) : result, false);
-        setStatus('整形しました（' + dialect.options[dialect.selectedIndex].text + '）。', 'ok');
+        if (isAccess) {
+          result = unmaskAccess(result, masked.bag);
+          /* ライブラリが知らない Access 固有の関数は Nz (…) と離れてしまうので詰める */
+          result = result.replace(
+            /\b(Nz|IIf|Switch|Choose|Format|DLookUp|DCount|DSum|DAvg|DMax|DMin|CDate|CStr|CInt|CLng|CDbl|CCur|Val)\s+\(/g,
+            '$1(');
+        }
+        setOutput(result, false);
+        setStatus('整形しました（' + dialectLabel() + '）。', 'ok');
       } catch (err) {
         setOutput('❌ Invalid SQL: ' + ((err && err.message) ? err.message : String(err)), true);
         setStatus('SQL を解析できませんでした。方言の指定を確認してください。', 'error');
@@ -391,7 +428,8 @@
     }
     dialect.addEventListener('change', function () {
       store('atelier-sql-dialect', dialect.value);
-      reformat();
+      /* 自分で書いたクエリは消さない。見本のままのときだけ差し替える */
+      if (inputIsSample()) { loadSample(); } else { reformat(); }
     });
 
     $('sqlFormat').addEventListener('click', format);
@@ -420,9 +458,10 @@
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); format(); }
     });
 
-    /* 初期表示：サンプルを整形済みの状態で見せる */
-    input.value = "select u.id, u.name, count(o.id) as orders from users u left join orders o on o.user_id = u.id where u.status = 'active' and o.created_at >= '2026-01-01' group by u.id, u.name having count(o.id) > 3 order by orders desc";
-    format();
+    $('sqlSample').addEventListener('click', loadSample);
+
+    /* 初期表示：選ばれている方言の見本を整形済みの状態で見せる */
+    loadSample();
     setStatus(HINT);
   })();
 
