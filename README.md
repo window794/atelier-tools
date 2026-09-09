@@ -5,7 +5,7 @@
 JSON を整形するだけの、広告もトラッキングもないツールです。
 処理はすべてブラウザ内で完結し、入力したテキストはどこにも送信されません。
 
-**🔗 https://\<user\>.github.io/atelier-tools/**
+**🔗 https://window794.github.io/atelier-tools/**
 
 <!-- ↑ 公開後、自分の GitHub ユーザー名に置き換えてください -->
 
