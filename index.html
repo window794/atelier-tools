@@ -30,6 +30,7 @@
 <nav class="tabs" role="tablist" aria-label="ツール">
   <button class="tab" id="tab-json" role="tab" aria-selected="true" aria-controls="panel-json" data-tab="json">JSON</button>
   <button class="tab" id="tab-sql" role="tab" aria-selected="false" aria-controls="panel-sql" data-tab="sql">SQL</button>
+  <button class="tab" id="tab-excel" role="tab" aria-selected="false" aria-controls="panel-excel" data-tab="excel">Excel</button>
 </nav>
 
 <main>
@@ -117,6 +118,7 @@
       <div class="toolbar-right">
         <button type="button" class="btn btn-primary" id="sqlFormat">Format</button>
         <button type="button" class="btn" id="sqlOneLine">One line</button>
+        <button type="button" class="btn" id="sqlVba" title="整形した SQL を VBA の文字列連結に。VBA を貼れば SQL に戻します">VBA</button>
         <button type="button" class="btn" id="sqlCopy">Copy</button>
         <button type="button" class="btn btn-ghost" id="sqlSample">Sample</button>
         <button type="button" class="btn btn-ghost" id="sqlClear">Clear</button>
@@ -140,6 +142,63 @@
           <span class="meta" id="sqlOutMeta">0 lines</span>
         </div>
         <textarea class="editor" id="sqlOutput" readonly spellcheck="false" aria-label="整形結果"></textarea>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────── Excel ─────────── -->
+  <section class="panel" id="panel-excel" role="tabpanel" aria-labelledby="tab-excel" hidden>
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="opt">
+          <span class="toolbar-label">Output</span>
+          <div class="seg" id="segXlFormat" role="group" aria-label="出力形式">
+            <button type="button" class="seg-btn" data-value="json">JSON</button>
+            <button type="button" class="seg-btn" data-value="md">Markdown</button>
+            <button type="button" class="seg-btn" data-value="csv">CSV</button>
+            <button type="button" class="seg-btn" data-value="pandas">pandas</button>
+          </div>
+        </div>
+        <div class="opt">
+          <span class="toolbar-label">Header</span>
+          <div class="seg" id="segXlHeader" role="group" aria-label="1 行目を見出しとして扱う">
+            <button type="button" class="seg-btn" data-value="yes">1st row</button>
+            <button type="button" class="seg-btn" data-value="no">none</button>
+          </div>
+        </div>
+        <div class="opt" id="optXlTypes">
+          <span class="toolbar-label">Values</span>
+          <div class="seg" id="segXlTypes" role="group" aria-label="数値・真偽値を型変換する">
+            <button type="button" class="seg-btn" data-value="typed">typed</button>
+            <button type="button" class="seg-btn" data-value="text">text</button>
+          </div>
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <button type="button" class="btn btn-primary" id="xlConvert">Convert</button>
+        <button type="button" class="btn" id="xlCopy">Copy</button>
+        <button type="button" class="btn btn-ghost" id="xlSample">Sample</button>
+        <button type="button" class="btn btn-ghost" id="xlClear">Clear</button>
+      </div>
+    </div>
+
+    <p class="status" id="xlStatus" role="status" aria-live="polite"></p>
+
+    <div class="editor-grid">
+      <div class="card">
+        <div class="card-head">
+          <span class="badge">Input</span>
+          <span class="meta" id="xlInMeta">0 chars</span>
+        </div>
+        <textarea class="editor" id="xlInput" spellcheck="false" autocapitalize="off" autocorrect="off"
+          aria-label="Excel からコピーした表" placeholder="Excel でセルを選んでコピーし、ここに貼り付け"></textarea>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <span class="badge">Output</span>
+          <span class="meta" id="xlOutMeta">0 lines</span>
+        </div>
+        <textarea class="editor" id="xlOutput" readonly spellcheck="false" aria-label="変換結果"></textarea>
       </div>
     </div>
   </section>

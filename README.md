@@ -2,7 +2,7 @@
 
 > 道具棚 — 静かに使える、個人用のウェブ道具置き場。
 
-JSON と SQL を整形するだけの、広告もトラッキングもないツールです。
+JSON と SQL の整形、Excel の表の変換をするだけの、広告もトラッキングもないツールです。
 処理はすべてブラウザ内で完結し、入力したテキストはどこにも送信されません。
 
 **🔗 https://window794.github.io/atelier-tools/**
@@ -26,11 +26,29 @@ JSON と SQL を整形するだけの、広告もトラッキングもないツ�
 |------|------|
 | **Format** | 句ごとに改行してインデントする |
 | **One line** | 1 行に戻す（文字列リテラル内の空白はそのまま） |
+| **VBA** | 整形した SQL を `sql = sql & "…" & vbCrLf` 形式に変換。VBA を貼れば SQL に戻す |
 | **Sample** | 選んでいる方言らしい書き方の見本を読み込む |
 | **Dialect** | Standard / MySQL / PostgreSQL / SQL Server / Oracle / SQLite / Access |
 | **Indent** | Tab / スペース 2 / スペース 4 |
 | **Keyword** | 予約語を UPPER / lower / そのまま |
 | **And・Or** | AND・OR を改行の前に置くか後に置くか |
+
+### Excel タブ
+
+Excel でセルをコピーして貼り付けると、JSON / Markdown / CSV / pandas に変換します。
+
+| 機能 | 説明 |
+|------|------|
+| **Output** | JSON（オブジェクトの配列）/ Markdown 表 / CSV / pandas（`pd.DataFrame({...})` のコード） |
+| **Header** | 1 行目を見出しとして使うか。使わない場合は配列の配列（pandas はリストのリスト）になる |
+| **Values** | 数値と TRUE/FALSE を型変換するか、すべて文字列のままにするか（JSON / pandas のみ） |
+
+- `001` のような先頭ゼロの値は文字列のまま残します（郵便番号・社員番号対策）
+- 空欄は `null`（typed）または `""`（text）になります
+- Markdown では数値列を右寄せにし、全角を考慮して桁を揃えます
+- CSV はカンマ・引用符・改行を含むセルだけ `"…"` で囲みます（RFC 4180）
+- pandas は `None` / `True` / `False` と Python の文字列エスケープで出すので、Notebook にそのまま貼れます
+- タブ区切り（Excel のコピー）とカンマ区切り（CSV）のどちらも読めます
 
 - 不正な入力は `❌ Invalid JSON: …` / `❌ Invalid SQL: …` とエラー箇所を表示します
 - `Ctrl + Enter`（Mac は `⌘ + Enter`）でも整形できます
@@ -91,6 +109,11 @@ python -m http.server 8000
 - **SQL のカンマ前置き** — 「カンマ前」「桁ぞろえ」スタイルには未対応です。
 - **SQL の One line** — 行コメント（`--`）は取り除かれます。1 行にすると
   後続のクエリまで巻き込んでしまうためです。
+- **Markdown の桁揃え** — 全角を半角 2 文字分として揃えています。半角:全角が 3:5 の
+  フォント（UDEV Gothic 35 など）では生テキストの見た目が少しずれますが、
+  Obsidian や GitHub で表として描画されれば関係ありません。
+- **VBA 変換** — 変数名は `sql` 固定です。逆変換は `"…"` の中身と `vbCrLf` /
+  `vbNewLine` / `vbLf` / `Chr(10)` だけを見るので、変数を連結している箇所は落ちます。
 - **Access** — `[表]![列]` と `#日付#` を一時的に伏せ字にしてから SQL Server
   として整形し、あとで元に戻しています。`TRANSFORM` / `PIVOT` を使ったクロス集計
   クエリのような Access 固有の構文までは面倒を見きれません。

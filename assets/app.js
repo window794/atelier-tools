@@ -371,43 +371,128 @@
       });
     }
 
-    function format() {
-      var source = input.value;
-      if (!source.trim()) {
-        setOutput('', false);
-        setStatus('Input が空です。SQL を貼り付けてください。');
-        input.focus();
-        return;
-      }
+    /** 現在の設定で整形した文字列を返す。解析できなければ例外 */
+    function formatSql(source) {
       if (typeof sqlFormatter === 'undefined' || !sqlFormatter.format) {
-        setOutput('❌ SQL フォーマッタを読み込めませんでした。\nassets/vendor/sql-formatter.min.js が配置されているか確認してください。', true);
-        setStatus('ライブラリを読み込めませんでした。', 'error');
-        return;
+        throw new Error('SQL フォーマッタを読み込めませんでした。assets/vendor/sql-formatter.min.js が配置されているか確認してください。');
       }
       var width = indent.get();
       var isAccess = dialect.value === 'access';
       var masked = isAccess ? maskAccess(source) : null;
+      var result = sqlFormatter.format(isAccess ? masked.sql : source, {
+        /* Access は角かっこ識別子を扱える SQL Server として解釈させる */
+        language: isAccess ? 'transactsql' : dialect.value,
+        useTabs: width === 'tab',
+        tabWidth: width === 'tab' ? 4 : Number(width),
+        keywordCase: keyword.get(),
+        logicalOperatorNewline: logical.get()
+      });
+      if (isAccess) {
+        result = unmaskAccess(result, masked.bag);
+        /* ライブラリが知らない Access 固有の関数は Nz (…) と離れてしまうので詰める */
+        result = result.replace(
+          /\b(Nz|IIf|Switch|Choose|Format|DLookUp|DCount|DSum|DAvg|DMax|DMin|CDate|CStr|CInt|CLng|CDbl|CCur|Val)\s+\(/g,
+          '$1(');
+      }
+      return result;
+    }
+
+    function showSqlError(err) {
+      setOutput('❌ Invalid SQL: ' + ((err && err.message) ? err.message : String(err)), true);
+      setStatus('SQL を解析できませんでした。方言の指定を確認してください。', 'error');
+    }
+
+    function requireInput() {
+      if (input.value.trim()) { return true; }
+      setOutput('', false);
+      setStatus('Input が空です。SQL を貼り付けてください。');
+      input.focus();
+      return false;
+    }
+
+    function format() {
+      if (!requireInput()) { return; }
       try {
-        var result = sqlFormatter.format(isAccess ? masked.sql : source, {
-          /* Access は角かっこ識別子を扱える SQL Server として解釈させる */
-          language: isAccess ? 'transactsql' : dialect.value,
-          useTabs: width === 'tab',
-          tabWidth: width === 'tab' ? 4 : Number(width),
-          keywordCase: keyword.get(),
-          logicalOperatorNewline: logical.get()
-        });
-        if (isAccess) {
-          result = unmaskAccess(result, masked.bag);
-          /* ライブラリが知らない Access 固有の関数は Nz (…) と離れてしまうので詰める */
-          result = result.replace(
-            /\b(Nz|IIf|Switch|Choose|Format|DLookUp|DCount|DSum|DAvg|DMax|DMin|CDate|CStr|CInt|CLng|CDbl|CCur|Val)\s+\(/g,
-            '$1(');
-        }
-        setOutput(result, false);
+        setOutput(formatSql(input.value), false);
         setStatus('整形しました（' + dialectLabel() + '）。', 'ok');
       } catch (err) {
-        setOutput('❌ Invalid SQL: ' + ((err && err.message) ? err.message : String(err)), true);
-        setStatus('SQL を解析できませんでした。方言の指定を確認してください。', 'error');
+        showSqlError(err);
+      }
+    }
+
+    /* ── VBA の文字列連結 ⇄ SQL ─────────────── */
+
+    /**
+     * 整形済み SQL を VBA の文字列連結に変換する。
+     *   sql = "SELECT" & vbCrLf
+     *   sql = sql & "  id" & vbCrLf
+     * 行継続（_）は 1 文で 24 回までという VBA の制限があるため、
+     * 1 行 1 文の形にしている。
+     */
+    function toVba(sql) {
+      var lines = sql.replace(/\r\n?/g, '\n').split('\n');
+      while (lines.length && lines[lines.length - 1].trim() === '') { lines.pop(); }
+      return lines.map(function (line, i) {
+        var literal = '"' + line.replace(/\s+$/, '').replace(/"/g, '""') + '"';
+        var head = (i === 0) ? 'sql = ' : 'sql = sql & ';
+        var tail = (i === lines.length - 1) ? '' : ' & vbCrLf';
+        return head + literal + tail;
+      }).join('\n');
+    }
+
+    /** VBA の文字列連結らしい行が過半数なら true */
+    function looksLikeVba(text) {
+      var lines = text.split('\n').filter(function (l) { return l.trim() !== ''; });
+      if (!lines.length) { return false; }
+      var hits = lines.filter(function (l) {
+        return (/^\s*[A-Za-z_][\w.]*\s*=\s*.*"/.test(l))          /* sql = ... "..." */
+            || (/^\s*&?\s*"/.test(l) && /(_\s*$|&|vbCrLf)/.test(l)); /* 継続行 */
+      }).length;
+      return hits >= Math.ceil(lines.length / 2);
+    }
+
+    /**
+     * VBA の文字列連結から SQL を取り出す。
+     * 各行の "…" の中身を順につなぎ、リテラルの外に vbCrLf 等があれば改行する。
+     */
+    function fromVba(text) {
+      var out = '';
+      text.replace(/\r\n?/g, '\n').split('\n').forEach(function (line) {
+        var literal = /"((?:[^"]|"")*)"/g;
+        var parts = [];
+        var m;
+        while ((m = literal.exec(line)) !== null) { parts.push(m[1].replace(/""/g, '"')); }
+        var outside = line.replace(/"(?:[^"]|"")*"/g, '');
+        var newline = /\b(vbCrLf|vbNewLine|vbLf)\b|Chr\$?\(\s*10\s*\)/i.test(outside);
+        if (!parts.length && !newline) { return; }   /* Dim や空行など、文字列のない行は無視 */
+        out += parts.join('');
+        if (newline) { out += '\n'; }
+      });
+      return out.trim();
+    }
+
+    function convertVba() {
+      if (!requireInput()) { return; }
+      var source = input.value;
+      if (looksLikeVba(source)) {
+        /* VBA → SQL：取り出した SQL を Input に戻して、そのまま整形する */
+        input.value = fromVba(source);
+        updateMeta();
+        try {
+          setOutput(formatSql(input.value), false);
+          setStatus('VBA から SQL を取り出して整形しました。', 'ok');
+        } catch (err) {
+          setOutput(input.value, false);
+          setStatus('VBA から SQL を取り出しました（整形はできませんでした）。', 'error');
+        }
+        return;
+      }
+      /* SQL → VBA：現在の設定で整形してから連結文にする */
+      try {
+        setOutput(toVba(formatSql(source)), false);
+        setStatus('VBA の文字列連結に変換しました（変数名は sql）。', 'ok');
+      } catch (err) {
+        showSqlError(err);
       }
     }
 
@@ -433,15 +518,10 @@
     });
 
     $('sqlFormat').addEventListener('click', format);
+    $('sqlVba').addEventListener('click', convertVba);
     $('sqlOneLine').addEventListener('click', function () {
-      var source = input.value;
-      if (!source.trim()) {
-        setOutput('', false);
-        setStatus('Input が空です。SQL を貼り付けてください。');
-        input.focus();
-        return;
-      }
-      var result = toOneLine(source);
+      if (!requireInput()) { return; }
+      var result = toOneLine(input.value);
       setOutput(result.text, false);
       setStatus(result.strippedComment ? '1 行に戻しました（行コメント -- は削除）。' : '1 行に戻しました。', 'ok');
     });
@@ -465,7 +545,296 @@
     setStatus(HINT);
   })();
 
+  /* ══════════ Excel（表 → JSON / Markdown） ══════════ */
+
+  (function initTable() {
+    var HINT = 'Excel でセルをコピーして貼り付けてください。タブ区切り・カンマ区切りのどちらでも読めます。';
+    var input  = $('xlInput');
+    var output = $('xlOutput');
+    var setStatus = makeStatus($('xlStatus'), HINT);
+    var updateMeta = makeCounter(input, output, $('xlInMeta'), $('xlOutMeta'));
+
+    function setOutput(text, isError) {
+      output.value = text;
+      output.classList.toggle('is-error', !!isError);
+      updateMeta();
+    }
+
+    /**
+     * タブ／カンマ区切りテキストを 2 次元配列にする。
+     * Excel はセル内に改行や区切り文字があると "…" で囲み、" は "" にして出すので、
+     * その形（RFC 4180 相当）を読む。
+     */
+    function parseDelimited(text, delim) {
+      var rows = [];
+      var row = [];
+      var field = '';
+      var quoted = false;
+      var i = 0;
+      var n = text.length;
+
+      function endField() {
+        row.push(field.replace(/\r\n?/g, '\n'));
+        field = '';
+      }
+
+      while (i < n) {
+        var c = text.charAt(i);
+        if (quoted) {
+          if (c === '"') {
+            if (text.charAt(i + 1) === '"') { field += '"'; i += 2; continue; }
+            quoted = false; i++; continue;
+          }
+          field += c; i++; continue;
+        }
+        if (c === '"' && field === '') { quoted = true; i++; continue; }
+        if (c === delim) { endField(); i++; continue; }
+        if (c === '\r') { i++; continue; }
+        if (c === '\n') { endField(); rows.push(row); row = []; i++; continue; }
+        field += c; i++;
+      }
+      if (field !== '' || row.length) { endField(); rows.push(row); }
+
+      /* 末尾の空行（Excel のコピーには必ず付いてくる）を落とす */
+      while (rows.length && rows[rows.length - 1].every(function (v) { return v === ''; })) { rows.pop(); }
+      return rows;
+    }
+
+    /** 見出し行からキーを作る。空欄は col1、重複は name_2 のように補う */
+    function makeKeys(headerRow, width) {
+      var keys = [];
+      var seen = {};
+      for (var i = 0; i < width; i++) {
+        var key = (headerRow[i] || '').trim() || ('col' + (i + 1));
+        var base = key;
+        var k = 2;
+        while (seen[key]) { key = base + '_' + (k++); }
+        seen[key] = true;
+        keys.push(key);
+      }
+      return keys;
+    }
+
+    /** セルの文字列を JSON の値に。数値・真偽値だけを変換し、それ以外は文字列のまま */
+    function typedValue(v) {
+      if (v === '') { return null; }
+      if (/^-?\d{16,}$/.test(v)) { return v; }                  /* 桁が多すぎて精度が落ちる数は文字列で */
+      if (/^-?(0|[1-9]\d*)(\.\d+)?$/.test(v)) { return Number(v); }   /* 001 のような先頭ゼロは文字列のまま */
+      if (/^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(v)) { return Number(v.replace(/,/g, '')); } /* 1,234,567 */
+      if (/^(true|false)$/i.test(v)) { return v.toLowerCase() === 'true'; }
+      return v;
+    }
+
+    function isNumeric(v) {
+      return v !== '' && typeof typedValue(v) === 'number';
+    }
+
+    function toJson(rows, hasHeader, typed) {
+      var width = Math.max.apply(null, rows.map(function (r) { return r.length; }));
+      var body = hasHeader ? rows.slice(1) : rows;
+      var conv = typed ? typedValue : function (v) { return v; };
+      if (!hasHeader) {
+        return JSON.stringify(body.map(function (r) {
+          var arr = [];
+          for (var i = 0; i < width; i++) { arr.push(conv(r[i] || '')); }
+          return arr;
+        }), null, 2);
+      }
+      var keys = makeKeys(rows[0], width);
+      return JSON.stringify(body.map(function (r) {
+        var obj = {};
+        keys.forEach(function (key, i) { obj[key] = conv(r[i] || ''); });
+        return obj;
+      }), null, 2);
+    }
+
+    /** 表示幅。全角を 2、半角を 1 として数え、Markdown の桁揃えに使う */
+    function displayWidth(s) {
+      var w = 0;
+      for (var i = 0; i < s.length; i++) {
+        var code = s.charCodeAt(i);
+        if (code >= 0xD800 && code <= 0xDBFF) { w += 2; i++; continue; }   /* サロゲートペア（絵文字など） */
+        w += (code >= 0x2E80 && !(code >= 0xFF61 && code <= 0xFF9F)) ? 2 : 1;  /* 半角カナは 1 */
+      }
+      return w;
+    }
+
+    function pad(s, width, right) {
+      var fill = new Array(Math.max(0, width - displayWidth(s)) + 1).join(' ');
+      return right ? fill + s : s + fill;
+    }
+
+    function toMarkdown(rows, hasHeader) {
+      var width = Math.max.apply(null, rows.map(function (r) { return r.length; }));
+      var header = hasHeader ? makeKeys(rows[0], width) : makeKeys([], width);
+      var body = hasHeader ? rows.slice(1) : rows;
+      var esc = function (v) { return v.replace(/\|/g, '\\|').replace(/\n/g, '<br>'); };
+
+      var cols = [];
+      for (var c = 0; c < width; c++) {
+        var cells = body.map(function (r) { return esc(r[c] || ''); });
+        var nonEmpty = cells.filter(function (v) { return v !== ''; });
+        cols.push({
+          head: esc(header[c]),
+          cells: cells,
+          numeric: nonEmpty.length > 0 && nonEmpty.every(isNumeric),
+          width: Math.max(3, displayWidth(esc(header[c])), Math.max.apply(null, cells.map(displayWidth).concat([0])))
+        });
+      }
+
+      var line = function (pick) {
+        return '| ' + cols.map(pick).join(' | ') + ' |';
+      };
+      var out = [
+        line(function (col) { return pad(col.head, col.width, false); }),
+        line(function (col) {
+          var bar = new Array(col.width).join('-');
+          return col.numeric ? bar + ':' : bar + '-';
+        })
+      ];
+      body.forEach(function (r, ri) {
+        out.push(line(function (col) { return pad(col.cells[ri], col.width, col.numeric); }));
+      });
+      return out.join('\n');
+    }
+
+    /** CSV（RFC 4180）。カンマ・引用符・改行を含むセルだけ "…" で囲む */
+    function csvField(v) {
+      return /[",\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+    }
+
+    function toCsv(rows) {
+      var width = Math.max.apply(null, rows.map(function (r) { return r.length; }));
+      return rows.map(function (r) {
+        var cells = [];
+        for (var i = 0; i < width; i++) { cells.push(csvField(r[i] || '')); }
+        return cells.join(',');
+      }).join('\n');
+    }
+
+    /** Python のリテラルに。文字列は " で囲み、\ " 改行 タブ をエスケープ */
+    function pyLiteral(v, typed) {
+      var val = typed ? typedValue(v) : v;
+      if (val === null)  { return 'None'; }
+      if (val === true)  { return 'True'; }
+      if (val === false) { return 'False'; }
+      if (typeof val === 'number') { return String(val); }
+      return '"' + val
+        .replace(/\\/g, '\\\\')
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, '\\n')
+        .replace(/\t/g, '\\t') + '"';
+    }
+
+    /**
+     * pandas の DataFrame を作るコード。見出しがあれば列名をキーにした dict、
+     * なければ行のリスト。Notebook にそのまま貼れる形にする
+     */
+    function toPandas(rows, hasHeader, typed) {
+      var width = Math.max.apply(null, rows.map(function (r) { return r.length; }));
+      var body = hasHeader ? rows.slice(1) : rows;
+      var lines = ['import pandas as pd', ''];
+      if (!hasHeader) {
+        lines.push('df = pd.DataFrame([');
+        body.forEach(function (r) {
+          var cells = [];
+          for (var i = 0; i < width; i++) { cells.push(pyLiteral(r[i] || '', typed)); }
+          lines.push('    [' + cells.join(', ') + '],');
+        });
+        lines.push('])');
+        return lines.join('\n');
+      }
+      var keys = makeKeys(rows[0], width);
+      lines.push('df = pd.DataFrame({');
+      keys.forEach(function (key, i) {
+        var values = body.map(function (r) { return pyLiteral(r[i] || '', typed); });
+        lines.push('    ' + pyLiteral(key, false) + ': [' + values.join(', ') + '],');
+      });
+      lines.push('})');
+      return lines.join('\n');
+    }
+
+    function convert() {
+      var source = input.value;
+      if (!source.trim()) {
+        setOutput('', false);
+        setStatus('Input が空です。Excel からセルをコピーして貼り付けてください。');
+        input.focus();
+        return;
+      }
+      var delim = source.indexOf('\t') >= 0 ? '\t' : ',';
+      var rows = parseDelimited(source, delim);
+      if (!rows.length) {
+        setOutput('', false);
+        setStatus('読み取れる行がありませんでした。');
+        return;
+      }
+      var hasHeader = header.get() === 'yes';
+      if (hasHeader && rows.length < 2) {
+        setOutput('❌ 見出し行しかありません。データ行を含めて貼り付けるか、Header を「none」にしてください。', true);
+        setStatus('データ行がありません。', 'error');
+        return;
+      }
+      var typed = types.get() === 'typed';
+      var kind = format.get();
+      var result, label;
+      if (kind === 'md')          { result = toMarkdown(rows, hasHeader);       label = 'Markdown 表'; }
+      else if (kind === 'csv')    { result = toCsv(rows);                       label = 'CSV'; }
+      else if (kind === 'pandas') { result = toPandas(rows, hasHeader, typed);  label = 'pandas の DataFrame'; }
+      else                        { result = toJson(rows, hasHeader, typed);    label = 'JSON'; }
+      setOutput(result, false);
+      var dataRows = hasHeader ? rows.length - 1 : rows.length;
+      setStatus(label + ' に変換しました（' + dataRows + ' 行 × ' + rows[0].length + ' 列、' + (delim === '\t' ? 'タブ' : 'カンマ') + '区切り）。', 'ok');
+    }
+
+    function reconvert() {
+      if (output.value && !output.classList.contains('is-error')) { convert(); }
+    }
+
+    /* 型変換の選択肢は、型を持てる出力（JSON / pandas）のときだけ見せる */
+    function hasTypes(kind) { return kind === 'json' || kind === 'pandas'; }
+
+    var format = segGroup($('segXlFormat'), 'atelier-xl-format', 'json', function (v) {
+      $('optXlTypes').hidden = !hasTypes(v);
+      reconvert();
+    });
+    var header = segGroup($('segXlHeader'), 'atelier-xl-header', 'yes',   reconvert);
+    var types  = segGroup($('segXlTypes'),  'atelier-xl-types',  'typed', reconvert);
+    $('optXlTypes').hidden = !hasTypes(format.get());
+
+    var SAMPLE = [
+      'id\t氏名\t部署\t入社日\t勤続年数\t在籍\t備考',
+      '001\t田中 太郎\t営業部\t2019-04-01\t7\tTRUE\t',
+      '002\t佐藤 花子\t開発部\t2021-10-15\t4.5\tTRUE\t兼務: 総務',
+      '003\t鈴木 一郎\t営業部\t2016-04-01\t10\tFALSE\t"2026-03-31 退職\n再雇用予定"'
+    ].join('\n');
+
+    $('xlConvert').addEventListener('click', convert);
+    $('xlCopy').addEventListener('click', function () { copyText(output.value, setStatus); });
+    $('xlSample').addEventListener('click', function () {
+      input.value = SAMPLE;
+      convert();
+      setStatus('見本を読み込みました。先頭ゼロの id は文字列のまま、数値と TRUE/FALSE は型変換されます。', 'ok');
+    });
+    $('xlClear').addEventListener('click', function () {
+      input.value = '';
+      setOutput('', false);
+      setStatus('Input / Output をクリアしました。');
+      input.focus();
+    });
+
+    input.addEventListener('input', updateMeta);
+    input.addEventListener('keydown', function (e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); convert(); }
+    });
+
+    /* 初期表示：見本を変換済みの状態で見せる */
+    input.value = SAMPLE;
+    convert();
+    setStatus(HINT);
+  })();
+
   /* 前回開いていたタブを復元する */
   var savedTab = store('atelier-tab');
-  if (savedTab === 'sql') { $('tab-sql').click(); }
+  if (savedTab && $('tab-' + savedTab)) { $('tab-' + savedTab).click(); }
 })();
